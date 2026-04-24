@@ -1,0 +1,27 @@
+name: Agente de Noticias Diario
+
+on:
+  schedule:
+    - cron: "0 11 * * *"  # 11:00 UTC = 08:00 Argentina (UTC-3)
+  workflow_dispatch:       # permite ejecutarlo manualmente desde GitHub
+
+jobs:
+  send-news:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: pip install anthropic
+
+      - name: Ejecutar agente
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SENDER_EMAIL:      ${{ secrets.SENDER_EMAIL }}
+          SENDER_PASSWORD:   ${{ secrets.SENDER_PASSWORD }}
+          RECIPIENT_EMAIL:   ${{ secrets.RECIPIENT_EMAIL }}
+        run: python news_agent.py
