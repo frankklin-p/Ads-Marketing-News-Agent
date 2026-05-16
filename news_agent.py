@@ -1,6 +1,7 @@
 import anthropic
 import smtplib
 import os
+import json
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
@@ -10,7 +11,6 @@ SENDER_EMAIL    = os.environ["SENDER_EMAIL"]
 SENDER_PASSWORD = os.environ["SENDER_PASSWORD"]  # App password de Gmail
 ANTHROPIC_KEY   = os.environ["ANTHROPIC_API_KEY"]
 
-# Temas extraídos de "All Things Advertising" e "Infoextravaganza"
 TOPICS = """
 - Campañas ganadoras y trabajos destacados de festivales: Cannes Lions, D&AD, Clio Awards, One Show, Webby Awards, Epica Awards, Spikes Asia
 - Novedades de agencias globales: CPB Group, Wieden+Kennedy, TBWA, AlmaPBBDO, DAVID, AKQA, DDB, Droga5, BBDO, McCann, Santo Buenos Aires, Lola MullenLowe
@@ -25,7 +25,7 @@ TOPICS = """
 def fetch_news():
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
     response = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model="claude-sonnet-4-6",
         max_tokens=2000,
         tools=[{"type": "web_search_20250305", "name": "web_search"}],
         messages=[{
@@ -42,11 +42,10 @@ Reply ONLY in JSON with no backticks or markdown:
         }]
     )
     text = next(b.text for b in response.content if b.type == "text")
-    import json
     return json.loads(text.strip())
 
 def build_html(data):
-    fecha = data.get("fecha", datetime.now().strftime("%d/%m/%Y"))
+    fecha = data.get("date", datetime.now().strftime("%d/%m/%Y"))
     items = "".join(f"""
     <div style="margin-bottom:24px;padding:16px;background:#f9f9f9;border-left:3px solid #e94560;border-radius:4px;">
       <p style="font-size:11px;color:#888;margin:0 0 4px">{i+1}. {n['source']}</p>
@@ -56,7 +55,7 @@ def build_html(data):
     return f"""
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#333">
       <h2 style="color:#1a1a2e;border-bottom:2px solid #e94560;padding-bottom:8px">
-        📢 Creative News — {fecha}
+        🎬 Creative News · {fecha}
       </h2>
       <p style="font-size:13px;color:#888;margin:-8px 0 20px">
         Advertising · Branding · Design · Awards · Agencies
@@ -69,7 +68,7 @@ def build_html(data):
 
 def send_email(html, fecha):
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"📢 Creative News — {fecha}"
+    msg["Subject"] = f"🎬 Creative News · {fecha}"
     msg["From"]    = SENDER_EMAIL
     msg["To"]      = RECIPIENT_EMAIL
     msg.attach(MIMEText(html, "html"))
